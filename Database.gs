@@ -3,20 +3,37 @@
  * Ce fichier contient toutes les fonctions pour lire et écrire dans les feuilles Google Sheets
  */
 
-// Obtenir l'ID du classeur (spreadsheet) actif
-function getSpreadsheetId() {
-  return SpreadsheetApp.getActiveSpreadsheet().getId();
+// ID du classeur Google Sheets utilisé comme base de données
+// L'ID se trouve dans l'URL de votre Google Sheets entre /d/ et /edit
+// Exemple : https://docs.google.com/spreadsheets/d/VOTRE_ID_ICI/edit
+const SPREADSHEET_ID = '1hdj86LiRWY7K1vIHYh0NwIM8M_HKEy7P9SGezhDC70M'; // ⚠️ REMPLACEZ PAR VOTRE ID DE GOOGLE SHEETS
+
+// Obtenir le classeur (spreadsheet)
+function getSpreadsheet() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
 // Obtenir une feuille par son nom
 function getSheetByName(sheetName) {
-  return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+  return getSpreadsheet().getSheetByName(sheetName);
 }
 
 // Obtenir toutes les données d'une feuille (avec en-têtes)
 function getAllData(sheetName) {
   const sheet = getSheetByName(sheetName);
+  
+  // Vérifier si la feuille existe
+  if (!sheet) {
+    console.error(`La feuille "${sheetName}" n'existe pas.`);
+    return [];
+  }
+  
   const data = sheet.getDataRange().getValues();
+  
+  // Vérifier s'il y a des données (au moins la ligne d'en-tête)
+  if (data.length === 0) {
+    return [];
+  }
   
   // Transformer les données en objets avec les en-têtes comme clés
   const headers = data[0];
@@ -34,6 +51,13 @@ function getAllData(sheetName) {
 // Ajouter une ligne de données dans une feuille
 function addRow(sheetName, rowData) {
   const sheet = getSheetByName(sheetName);
+  
+  // Vérifier si la feuille existe
+  if (!sheet) {
+    console.error(`La feuille "${sheetName}" n'existe pas.`);
+    return null;
+  }
+  
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   
   // Créer un tableau dans le même ordre que les en-têtes
@@ -47,12 +71,19 @@ function addRow(sheetName, rowData) {
 // Mettre à jour une ligne en utilisant un ID ou une autre colonne comme identifiant
 function updateRow(sheetName, idColumnName, idValue, updatedData) {
   const sheet = getSheetByName(sheetName);
+  
+  // Vérifier si la feuille existe
+  if (!sheet) {
+    console.error(`La feuille "${sheetName}" n'existe pas.`);
+    return false;
+  }
+  
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   
   // Trouver l'index de la colonne d'identification
   const idColumnIndex = headers.indexOf(idColumnName);
-  if (idColumnIndex === -1) return null;
+  if (idColumnIndex === -1) return false;
   
   // Chercher la ligne correspondante
   for (let i = 1; i < data.length; i++) {
@@ -74,6 +105,13 @@ function updateRow(sheetName, idColumnName, idValue, updatedData) {
 // Supprimer une ligne par ID
 function deleteRow(sheetName, idColumnName, idValue) {
   const sheet = getSheetByName(sheetName);
+  
+  // Vérifier si la feuille existe
+  if (!sheet) {
+    console.error(`La feuille "${sheetName}" n'existe pas.`);
+    return false;
+  }
+  
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   

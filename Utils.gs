@@ -1,50 +1,159 @@
 /**
- * SIGMA - Fonctions utilitaires
- * Ce fichier contient des fonctions d'aide et d'utilitaires généraux
+ * SIGMA - Fonctions liées à l'interface utilisateur
+ * Ce fichier contient les fonctions appelées depuis le front-end
  */
 
-// Fonction pour formater une date
-function formatDate(date) {
-  if (!date) return '';
+// Obtenir les données pour l'onglet "Résumé"
+function getDashboardData() {
+  const data = {
+    alertesStock: getAlertesStock(),
+    materielManquant: getMaterielManquant(),
+    empruntsNonRevenus: getEmpruntsNonRevenus(),
+    prochainsEmprunts: getProchainsEmprunts(),
+    modulesNonOperationnels: getModulesNonOperationnels(),
+    materielNonOperationnel: getMaterielNonOperationnel(),
+    empruntsEnAttente: getEmpruntsEnAttente()
+  };
   
-  // Si c'est déjà une chaîne au format "JJ/MM/AAAA", on la retourne directement
-  if (typeof date === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(date)) {
-    return date;
+  return data;
+}
+
+// Fonction temporaire pour l'onglet "Résumé" (sera développée plus tard)
+function getAlertesStock() {
+  // Temporairement, retourner des données fictives
+  return [
+    { materiel: "Tablettes Android", stock: 2, seuil: 5, localisation: "Armoire A" },
+    { materiel: "Câbles HDMI", stock: 3, seuil: 10, localisation: "Tiroir B" }
+  ];
+}
+
+// Fonction temporaire pour le matériel manquant
+function getMaterielManquant() {
+  return [
+    { materiel: "Adaptateur DisplayPort", quantite: 1, urgence: "Haute" },
+    { materiel: "Batterie externe", quantite: 2, urgence: "Moyenne" }
+  ];
+}
+
+// Fonction temporaire pour les emprunts non revenus
+function getEmpruntsNonRevenus() {
+  return [
+    { 
+      nom: "Animation Astronomie", 
+      lieu: "Collège Jean Moulin",
+      dateDepart: "01/02/2025",
+      dateRetour: "15/02/2025",
+      secteur: "Astronomie",
+      emprunteur: "Marie Dupont"
+    }
+  ];
+}
+
+// Fonction temporaire pour les prochains emprunts
+function getProchainsEmprunts() {
+  return [
+    { 
+      nom: "Atelier Robotique", 
+      dateDepart: "10/03/2025",
+      etat: "Pas prêt"
+    }
+  ];
+}
+
+// Fonction temporaire pour les modules non opérationnels
+function getModulesNonOperationnels() {
+  return [
+    { 
+      code: "ASTRO-01", 
+      nom: "Module Observation Lunaire",
+      probleme: "Manque oculaire 10mm"
+    }
+  ];
+}
+
+// Fonction temporaire pour le matériel non opérationnel
+function getMaterielNonOperationnel() {
+  return [
+    { 
+      nom: "Télescope 150/750", 
+      probleme: "Pied instable",
+      statut: "En réparation"
+    }
+  ];
+}
+
+// Fonction temporaire pour les emprunts en attente
+function getEmpruntsEnAttente() {
+  return [
+    { 
+      nom: "Exposition Biodiversité", 
+      dateRetour: "28/02/2025",
+      statut: "Non inventorié, Non facturé"
+    }
+  ];
+}
+
+// Fonction pour récupérer le contenu HTML d'une page spécifique
+function getPageContent(pageName) {
+  switch(pageName) {
+    case 'dashboard':
+      return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
+    case 'emprunts':
+      return HtmlService.createHtmlOutputFromFile('empruntsUI').getContent();
+    case 'stock':
+      return HtmlService.createHtmlOutputFromFile('stockUI').getContent();
+    case 'modules':
+      return HtmlService.createHtmlOutputFromFile('modulesUI').getContent();
+    case 'livraisons':
+      return HtmlService.createHtmlOutputFromFile('livraisonsUI').getContent();
+    case 'options':
+      return HtmlService.createHtmlOutputFromFile('optionsUI').getContent();
+    default:
+      // Par défaut, retourner la page dashboard
+      return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
   }
+}
+
+// Obtenir les données pour la page Stock
+function getStockPageData(page, pageSize, filterType, searchTerm) {
+  // Récupérer les articles paginés
+  const stockData = getStockPaginated(page || 1, pageSize || 10, filterType, searchTerm);
   
-  // Sinon on convertit en objet Date et on formate
-  const d = new Date(date);
-  return `${padZero(d.getDate())}/${padZero(d.getMonth() + 1)}/${d.getFullYear()}`;
+  // Récupérer les catégories uniques pour le filtre
+  const categories = getUniqueStockCategories();
+  
+  // Récupérer les localisations uniques pour l'auto-complétion
+  const locations = getUniqueStockLocations();
+  
+  return {
+    stockData: stockData,
+    categories: categories,
+    locations: locations
+  };
 }
 
-// Ajouter un zéro devant les nombres < 10
-function padZero(num) {
-  return num < 10 ? `0${num}` : num;
+// Obtenir un article spécifique pour l'édition
+function getStockItemForEdit(id) {
+  return getStockItemById(id);
 }
 
-// Fonction pour envoyer un email d'alerte
-function sendEmailAlert(recipient, subject, body) {
-  try {
-    GmailApp.sendEmail(recipient, subject, body);
-    return true;
-  } catch (e) {
-    console.error('Erreur lors de l\'envoi d\'email:', e);
-    return false;
+// Sauvegarder un article (nouveau ou existant)
+function saveStockItem(itemData) {
+  if (itemData.ID) {
+    // Mise à jour d'un article existant
+    return updateStockItem(itemData.ID, itemData);
+  } else {
+    // Création d'un nouvel article
+    return createStockItem(itemData);
   }
 }
 
-// Comparaison de dates (utile pour vérifier les retards)
-function isDatePassed(dateStr) {
-  if (!dateStr) return false;
-  
-  // Convertir la date au format JJ/MM/AAAA en objet Date
-  const parts = dateStr.split('/');
-  const date = new Date(parts[2], parts[1] - 1, parts[0]);
-  
-  return date < new Date();
+// Supprimer un article
+function deleteStockItemFromUI(id) {
+  return deleteStockItem(id);
 }
 
-// Obtenir la date du jour au format JJ/MM/AAAA
-function getTodayFormatted() {
-  return formatDate(new Date());
+// Obtenir le fichier CSV du stock pour export
+function getStockCSVExport() {
+  return exportStockToCSV();
 }

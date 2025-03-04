@@ -113,4 +113,47 @@ function getPageContent(pageName) {
       // Par défaut, retourner la page dashboard
       return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
   }
+  // Obtenir les données pour la page Stock
+function getStockPageData(page, pageSize, filterType, searchTerm) {
+  // Récupérer les articles paginés
+  const stockData = getStockPaginated(page || 1, pageSize || 10, filterType, searchTerm);
+  
+  // Récupérer les catégories uniques pour le filtre
+  const categories = getUniqueStockCategories();
+  
+  // Récupérer les localisations uniques pour l'auto-complétion
+  const locations = getUniqueStockLocations();
+  
+  return {
+    stockData: stockData,
+    categories: categories,
+    locations: locations
+  };
+}
+
+// Obtenir un article spécifique pour l'édition
+function getStockItemForEdit(id) {
+  return getStockItemById(id);
+}
+
+// Sauvegarder un article (nouveau ou existant)
+function saveStockItem(itemData) {
+  if (itemData.ID) {
+    // Mise à jour d'un article existant
+    return updateStockItem(itemData.ID, itemData);
+  } else {
+    // Création d'un nouvel article
+    return createStockItem(itemData);
+  }
+}
+
+// Supprimer un article
+function deleteStockItemFromUI(id) {
+  return deleteStockItem(id);
+}
+
+// Obtenir le fichier CSV du stock pour export
+function getStockCSVExport() {
+  return exportStockToCSV();
+}
 }

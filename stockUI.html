@@ -171,9 +171,7 @@
   </div>
 
   <script>
-    
-
-  // Variables globales pour la page Stock (renommées pour éviter les conflits)
+    // Variables globales pour la page Stock
   let stockCurrentPage = 1;
   let stockPageSize = 10;
   let stockCurrentFilter = 'Tous';
@@ -224,371 +222,367 @@
       })
       .getAllStock();
   }
-    // Chargement initial des données
-    console.log('Appel de loadStockData()');
-    loadStockData();
-    
-    // Configuration des autres gestionnaires d'événements
-    console.log('Appel de setupStockEventHandlers()');
-    setupStockEventHandlers();
-    
-    console.log('Initialisation de la page Stock - FIN');
-  } catch (error) {
-    console.error('ERREUR dans initializeStockPage:', error);
-  }
-}
-    
-    // Configuration des gestionnaires d'événements pour la page Stock
-    function setupStockEventHandlers() {
-      // Événement pour la recherche
-      document.getElementById('searchStock').addEventListener('input', function() {
-        currentSearch = this.value;
-        currentPage = 1; // Retourner à la première page lors d'une recherche
-        loadStockData();
-      });
-      
-      // Événement pour le filtre de catégorie
-      document.getElementById('stockFilterDropdown').addEventListener('click', function(e) {
-        if (e.target.classList.contains('dropdown-item')) {
-          e.preventDefault();
-          
-          // Mettre à jour le filtre actif visuellement
-          document.querySelectorAll('#stockFilterDropdown .dropdown-item').forEach(item => {
-            item.classList.remove('active');
-          });
-          e.target.classList.add('active');
-          
-          // Appliquer le filtre
-          currentFilter = e.target.getAttribute('data-filter');
-          currentPage = 1; // Retourner à la première page lors d'un filtrage
-          loadStockData();
-        }
-      });
-      
-      // Événement pour le bouton Nouvel article
-      document.getElementById('btnNouvelArticle').addEventListener('click', function() {
-        openStockItemForm();
-      });
-      
-      // Événement pour le bouton Exporter
-      document.getElementById('btnExportStock').addEventListener('click', function() {
-        exportStockToCSV();
-      });
-      
-      // Événement pour le bouton Enregistrer dans le formulaire
-      document.getElementById('saveStockItem').addEventListener('click', function() {
-        saveStockItemForm();
-      });
-      
-      // Événement pour le bouton Confirmer la suppression
-      document.getElementById('confirmDelete').addEventListener('click', function() {
-        if (itemToDelete) {
-          deleteStockItem(itemToDelete);
-        }
-      });
-    }
-    
-    // Remplir le tableau avec les articles
-    function fillStockTable(items) {
-      const tbody = document.querySelector('#stockTable tbody');
-      tbody.innerHTML = '';
-      
-      if (!items || items.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="6" class="text-center">Aucun article trouvé</td>`;
-        tbody.appendChild(row);
-        return;
-      }
-      
-      items.forEach(item => {
-        const row = document.createElement('tr');
-        
-        // Ajouter une classe si le stock est critique
-        if (Number(item.Quantité) <= Number(item["Seuil alerte"])) {
-          row.classList.add('table-warning');
-        }
-        
-        row.innerHTML = `
-          <td>${item.Nom}</td>
-          <td>${item.Catégorie || ''}</td>
-          <td>${item.Quantité}</td>
-          <td>${item["Seuil alerte"]}</td>
-          <td>${item.Localisation || ''}</td>
-          <td>
-            <button class="btn btn-sm btn-outline-primary me-1 btn-edit" data-id="${item.ID}">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${item.ID}">
-              <i class="fas fa-trash"></i>
-            </button>
-          </td>
-        `;
-        tbody.appendChild(row);
-      });
-      
-      // Ajouter les gestionnaires d'événements pour les boutons d'action
-      document.querySelectorAll('#stockTable .btn-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const itemId = this.getAttribute('data-id');
-          editStockItem(itemId);
-        });
-      });
-      
-      document.querySelectorAll('#stockTable .btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-          const itemId = this.getAttribute('data-id');
-          confirmDeleteItem(itemId);
-        });
-      });
-    }
-    
-    // Mettre à jour la pagination
-    function updatePagination(pagination) {
-      const paginationEl = document.getElementById('stockPagination');
-      paginationEl.innerHTML = '';
-      
-      if (!pagination) return;
-      
-      // Bouton Précédent
-      const prevItem = document.createElement('li');
-      prevItem.className = `page-item ${pagination.currentPage === 1 ? 'disabled' : ''}`;
-      prevItem.innerHTML = `<a class="page-link" href="#" data-page="${pagination.currentPage - 1}">Précédent</a>`;
-      paginationEl.appendChild(prevItem);
-      
-      // Pages numérotées
-      for (let i = 1; i <= pagination.totalPages; i++) {
-        const pageItem = document.createElement('li');
-        pageItem.className = `page-item ${i === pagination.currentPage ? 'active' : ''}`;
-        pageItem.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
-        paginationEl.appendChild(pageItem);
-      }
-      
-      // Bouton Suivant
-      const nextItem = document.createElement('li');
-      nextItem.className = `page-item ${pagination.currentPage === pagination.totalPages ? 'disabled' : ''}`;
-      nextItem.innerHTML = `<a class="page-link" href="#" data-page="${pagination.currentPage + 1}">Suivant</a>`;
-      paginationEl.appendChild(nextItem);
-      
-      // Ajouter les gestionnaires d'événements pour les liens de pagination
-      document.querySelectorAll('#stockPagination .page-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          if (!this.parentElement.classList.contains('disabled')) {
-            currentPage = parseInt(this.getAttribute('data-page'));
-            loadStockData();
-          }
-        });
-      });
-    }
-    
-    // Remplir les filtres de catégorie
-    function fillCategoryFilters(categories) {
-      const dropdown = document.getElementById('stockFilterDropdown');
-      
-      // Conserver les items par défaut (Tous, Consommables, Non consommables, Stock critique)
-      const defaultItems = Array.from(dropdown.querySelectorAll('li')).slice(0, 4);
-      
-      // Vider le dropdown
-      dropdown.innerHTML = '';
-      
-      // Restaurer les items par défaut
-      defaultItems.forEach(item => {
-        dropdown.appendChild(item);
-      });
-      
-      // Ajouter les catégories personnalisées
-      if (categories && categories.length > 0) {
-        categories.forEach(category => {
-          if (category !== 'Consommable' && category !== 'Non consommable') {
-            const item = document.createElement('li');
-            item.innerHTML = `<a class="dropdown-item" href="#" data-filter="${category}">${category}</a>`;
-            dropdown.appendChild(item);
-          }
-        });
-      }
-    }
-    
-    // Remplir la liste des localisations pour l'autocomplétion
-    function fillLocationsList(locations) {
-      const datalist = document.getElementById('locationsList');
-      datalist.innerHTML = '';
-      
-      if (locations && locations.length > 0) {
-        locations.forEach(location => {
-          const option = document.createElement('option');
-          option.value = location;
-          datalist.appendChild(option);
-        });
-      }
-    }
-    
-    // Ouvrir le formulaire d'article (pour création ou édition)
-    function openStockItemForm(itemData = null) {
-      // Réinitialiser le formulaire
-      document.getElementById('stockItemForm').reset();
-      document.getElementById('stockItemId').value = '';
-      
-      if (itemData) {
-        // Mode édition
-        document.getElementById('stockItemModalLabel').textContent = 'Modifier un article';
-        document.getElementById('stockItemId').value = itemData.ID;
-        document.getElementById('stockItemName').value = itemData.Nom || '';
-        document.getElementById('stockItemCategory').value = itemData.Catégorie || '';
-        document.getElementById('stockItemQuantity').value = itemData.Quantité || 0;
-        document.getElementById('stockItemThreshold').value = itemData["Seuil alerte"] || 0;
-        document.getElementById('stockItemLocation').value = itemData.Localisation || '';
-        document.getElementById('stockItemSupplierRef').value = itemData["Référence fournisseur"] || '';
-        document.getElementById('stockItemSupplierLink').value = itemData["Lien fournisseur"] || '';
-      } else {
-        // Mode création
-        document.getElementById('stockItemModalLabel').textContent = 'Nouvel article';
-      }
-      
-      // Afficher le modal
-      const modal = new bootstrap.Modal(document.getElementById('stockItemModal'));
-      modal.show();
-    }
-    
-    // Éditer un article existant
-    function editStockItem(itemId) {
-      showSpinner();
-      
-      google.script.run
-        .withSuccessHandler(function(itemData) {
-          hideSpinner();
-          if (itemData) {
-            openStockItemForm(itemData);
-          } else {
-            showErrorMessage('Article non trouvé');
-          }
-        })
-        .withFailureHandler(function(error) {
-          console.error('Erreur lors de la récupération des données de l\'article:', error);
-          hideSpinner();
-          showErrorMessage('Erreur lors de la récupération des données de l\'article');
-        })
-        .getStockItemForEdit(itemId);
-    }
-    
-    // Sauvegarder les données du formulaire
-    function saveStockItemForm() {
-      // Valider le formulaire
-      const form = document.getElementById('stockItemForm');
-      if (!form.checkValidity()) {
-        form.reportValidity();
-        return;
-      }
-      
-      // Récupérer les données du formulaire
-      const itemData = {
-        ID: document.getElementById('stockItemId').value,
-        Nom: document.getElementById('stockItemName').value,
-        Catégorie: document.getElementById('stockItemCategory').value,
-        Quantité: document.getElementById('stockItemQuantity').value,
-        "Seuil alerte": document.getElementById('stockItemThreshold').value,
-        Localisation: document.getElementById('stockItemLocation').value,
-        "Référence fournisseur": document.getElementById('stockItemSupplierRef').value,
-        "Lien fournisseur": document.getElementById('stockItemSupplierLink').value
-      };
-      
-      showSpinner();
-      
-      google.script.run
-        .withSuccessHandler(function(result) {
-          hideSpinner();
-          
-          // Fermer le modal
-          bootstrap.Modal.getInstance(document.getElementById('stockItemModal')).hide();
-          
-          // Recharger les données
-          loadStockData();
-        })
-        .withFailureHandler(function(error) {
-          console.error('Erreur lors de l\'enregistrement de l\'article:', error);
-          hideSpinner();
-          showErrorMessage('Erreur lors de l\'enregistrement de l\'article');
-        })
-        .saveStockItem(itemData);
-    }
-    
-    // Confirmer la suppression d'un article
-    function confirmDeleteItem(itemId) {
-      itemToDelete = itemId;
-      const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-      modal.show();
-    }
-    
-    // Supprimer un article
-    function deleteStockItem(itemId) {
-      showSpinner();
-      
-      google.script.run
-        .withSuccessHandler(function(result) {
-          hideSpinner();
-          
-          // Fermer le modal de confirmation
-          bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
-          
-          // Réinitialiser l'ID de l'article à supprimer
-          itemToDelete = null;
-          
-          // Recharger les données
-          loadStockData();
-        })
-        .withFailureHandler(function(error) {
-          console.error('Erreur lors de la suppression de l\'article:', error);
-          hideSpinner();
-          showErrorMessage('Erreur lors de la suppression de l\'article');
-        })
-        .deleteStockItemFromUI(itemId);
-    }
-    
-    // Exporter les données du stock au format CSV
-    function exportStockToCSV() {
-      showSpinner();
-      
-      google.script.run
-        .withSuccessHandler(function(csvContent) {
-          hideSpinner();
-          
-          // Création d'un élément <a> temporaire pour le téléchargement
-          const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
-          const link = document.createElement('a');
-          link.setAttribute('href', encodedUri);
-          link.setAttribute('download', 'SIGMA_Stock_Export_' + new Date().toISOString().split('T')[0] + '.csv');
-          document.body.appendChild(link);
-          
-          // Cliquer automatiquement sur le lien pour démarrer le téléchargement
-          link.click();
-          
-          // Supprimer l'élément
-          document.body.removeChild(link);
-        })
-        .withFailureHandler(function(error) {
-          console.error('Erreur lors de l\'exportation des données:', error);
-          hideSpinner();
-          showErrorMessage('Erreur lors de l\'exportation des données');
-        })
-        .getStockCSVExport();
-    }
-    // Fonction de test rapide
-function testStockConnection() {
-  console.log("Test de connexion...");
-  showSpinner();
   
-  google.script.run
-    .withSuccessHandler(function(result) {
-      hideSpinner();
-      console.log("Test réussi :", result);
-      alert("Connexion OK! Nombre d'articles: " + result.length);
-    })
-    .withFailureHandler(function(error) {
-      hideSpinner();
-      console.error("Test échoué :", error);
-      alert("Erreur de connexion: " + error);
-    })
-    .getAllStock();
-}
+  // Fonction pour charger les données du stock
+  function loadStockData() {
+    showSpinner();
+    
+    google.script.run
+      .withSuccessHandler(function(data) {
+        hideSpinner();
+        if (data && data.stockData) {
+          fillStockTable(data.stockData.items);
+          updatePagination(data.stockData.pagination);
+          fillCategoryFilters(data.categories);
+          fillLocationsList(data.locations);
+        } else {
+          console.error('Format de données incorrect:', data);
+          showErrorMessage('Format de données incorrect reçu du serveur');
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Erreur lors du chargement des données:', error);
+        hideSpinner();
+        showErrorMessage('Erreur lors du chargement des données: ' + error);
+      })
+      .getStockPageData(stockCurrentPage, stockPageSize, stockCurrentFilter, stockCurrentSearch);
+  }
+    
+  // Configuration des gestionnaires d'événements pour la page Stock
+  function setupStockEventHandlers() {
+    // Événement pour la recherche
+    document.getElementById('searchStock').addEventListener('input', function() {
+      stockCurrentSearch = this.value;
+      stockCurrentPage = 1; // Retourner à la première page lors d'une recherche
+      loadStockData();
+    });
+    
+    // Événement pour le filtre de catégorie
+    document.getElementById('stockFilterDropdown').addEventListener('click', function(e) {
+      if (e.target.classList.contains('dropdown-item')) {
+        e.preventDefault();
+        
+        // Mettre à jour le filtre actif visuellement
+        document.querySelectorAll('#stockFilterDropdown .dropdown-item').forEach(item => {
+          item.classList.remove('active');
+        });
+        e.target.classList.add('active');
+        
+        // Appliquer le filtre
+        stockCurrentFilter = e.target.getAttribute('data-filter');
+        stockCurrentPage = 1; // Retourner à la première page lors d'un filtrage
+        loadStockData();
+      }
+    });
+    
+    // Événement pour le bouton Nouvel article
+    document.getElementById('btnNouvelArticle').addEventListener('click', function() {
+      openStockItemForm();
+    });
+    
+    // Événement pour le bouton Exporter
+    document.getElementById('btnExportStock').addEventListener('click', function() {
+      exportStockToCSV();
+    });
+    
+    // Événement pour le bouton Enregistrer dans le formulaire
+    document.getElementById('saveStockItem').addEventListener('click', function() {
+      saveStockItemForm();
+    });
+    
+    // Événement pour le bouton Confirmer la suppression
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+      if (stockItemToDelete) {
+        deleteStockItem(stockItemToDelete);
+      }
+    });
+  }
+  
+  // Remplir le tableau avec les articles
+  function fillStockTable(items) {
+    const tbody = document.querySelector('#stockTable tbody');
+    tbody.innerHTML = '';
+    
+    if (!items || items.length === 0) {
+      const row = document.createElement('tr');
+      row.innerHTML = `<td colspan="6" class="text-center">Aucun article trouvé</td>`;
+      tbody.appendChild(row);
+      return;
+    }
+    
+    items.forEach(item => {
+      const row = document.createElement('tr');
+      
+      // Ajouter une classe si le stock est critique
+      if (Number(item.Quantité) <= Number(item["Seuil alerte"])) {
+        row.classList.add('table-warning');
+      }
+      
+      row.innerHTML = `
+        <td>${item.Nom}</td>
+        <td>${item.Catégorie || ''}</td>
+        <td>${item.Quantité}</td>
+        <td>${item["Seuil alerte"]}</td>
+        <td>${item.Localisation || ''}</td>
+        <td>
+          <button class="btn btn-sm btn-outline-primary me-1 btn-edit" data-id="${item.ID}">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-outline-danger btn-delete" data-id="${item.ID}">
+            <i class="fas fa-trash"></i>
+          </button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+    
+    // Ajouter les gestionnaires d'événements pour les boutons d'action
+    document.querySelectorAll('#stockTable .btn-edit').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const itemId = this.getAttribute('data-id');
+        editStockItem(itemId);
+      });
+    });
+    
+    document.querySelectorAll('#stockTable .btn-delete').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const itemId = this.getAttribute('data-id');
+        confirmDeleteItem(itemId);
+      });
+    });
+  }
+  
+  // Mettre à jour la pagination
+  function updatePagination(pagination) {
+    const paginationEl = document.getElementById('stockPagination');
+    paginationEl.innerHTML = '';
+    
+    if (!pagination) return;
+    
+    // Bouton Précédent
+    const prevItem = document.createElement('li');
+    prevItem.className = `page-item ${pagination.currentPage === 1 ? 'disabled' : ''}`;
+    prevItem.innerHTML = `<a class="page-link" href="#" data-page="${pagination.currentPage - 1}">Précédent</a>`;
+    paginationEl.appendChild(prevItem);
+    
+    // Pages numérotées
+    for (let i = 1; i <= pagination.totalPages; i++) {
+      const pageItem = document.createElement('li');
+      pageItem.className = `page-item ${i === pagination.currentPage ? 'active' : ''}`;
+      pageItem.innerHTML = `<a class="page-link" href="#" data-page="${i}">${i}</a>`;
+      paginationEl.appendChild(pageItem);
+    }
+    
+    // Bouton Suivant
+    const nextItem = document.createElement('li');
+    nextItem.className = `page-item ${pagination.currentPage === pagination.totalPages ? 'disabled' : ''}`;
+    nextItem.innerHTML = `<a class="page-link" href="#" data-page="${pagination.currentPage + 1}">Suivant</a>`;
+    paginationEl.appendChild(nextItem);
+    
+    // Ajouter les gestionnaires d'événements pour les liens de pagination
+    document.querySelectorAll('#stockPagination .page-link').forEach(link => {
+      link.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        if (!this.parentElement.classList.contains('disabled')) {
+          stockCurrentPage = parseInt(this.getAttribute('data-page'));
+          loadStockData();
+        }
+      });
+    });
+  }
+  
+  // Remplir les filtres de catégorie
+  function fillCategoryFilters(categories) {
+    const dropdown = document.getElementById('stockFilterDropdown');
+    
+    // Conserver les items par défaut (Tous, Consommables, Non consommables, Stock critique)
+    const defaultItems = Array.from(dropdown.querySelectorAll('li')).slice(0, 4);
+    
+    // Vider le dropdown
+    dropdown.innerHTML = '';
+    
+    // Restaurer les items par défaut
+    defaultItems.forEach(item => {
+      dropdown.appendChild(item);
+    });
+    
+    // Ajouter les catégories personnalisées
+    if (categories && categories.length > 0) {
+      categories.forEach(category => {
+        if (category !== 'Consommable' && category !== 'Non consommable') {
+          const item = document.createElement('li');
+          item.innerHTML = `<a class="dropdown-item" href="#" data-filter="${category}">${category}</a>`;
+          dropdown.appendChild(item);
+        }
+      });
+    }
+  }
+  
+  // Remplir la liste des localisations pour l'autocomplétion
+  function fillLocationsList(locations) {
+    const datalist = document.getElementById('locationsList');
+    datalist.innerHTML = '';
+    
+    if (locations && locations.length > 0) {
+      locations.forEach(location => {
+        const option = document.createElement('option');
+        option.value = location;
+        datalist.appendChild(option);
+      });
+    }
+  }
+  
+  // Ouvrir le formulaire d'article (pour création ou édition)
+  function openStockItemForm(itemData = null) {
+    // Réinitialiser le formulaire
+    document.getElementById('stockItemForm').reset();
+    document.getElementById('stockItemId').value = '';
+    
+    if (itemData) {
+      // Mode édition
+      document.getElementById('stockItemModalLabel').textContent = 'Modifier un article';
+      document.getElementById('stockItemId').value = itemData.ID;
+      document.getElementById('stockItemName').value = itemData.Nom || '';
+      document.getElementById('stockItemCategory').value = itemData.Catégorie || '';
+      document.getElementById('stockItemQuantity').value = itemData.Quantité || 0;
+      document.getElementById('stockItemThreshold').value = itemData["Seuil alerte"] || 0;
+      document.getElementById('stockItemLocation').value = itemData.Localisation || '';
+      document.getElementById('stockItemSupplierRef').value = itemData["Référence fournisseur"] || '';
+      document.getElementById('stockItemSupplierLink').value = itemData["Lien fournisseur"] || '';
+    } else {
+      // Mode création
+      document.getElementById('stockItemModalLabel').textContent = 'Nouvel article';
+    }
+    
+    // Afficher le modal
+    const modal = new bootstrap.Modal(document.getElementById('stockItemModal'));
+    modal.show();
+  }
+  
+  // Éditer un article existant
+  function editStockItem(itemId) {
+    showSpinner();
+    
+    google.script.run
+      .withSuccessHandler(function(itemData) {
+        hideSpinner();
+        if (itemData) {
+          openStockItemForm(itemData);
+        } else {
+          showErrorMessage('Article non trouvé');
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Erreur lors de la récupération des données de l\'article:', error);
+        hideSpinner();
+        showErrorMessage('Erreur lors de la récupération des données de l\'article');
+      })
+      .getStockItemForEdit(itemId);
+  }
+  
+  // Sauvegarder les données du formulaire
+  function saveStockItemForm() {
+    // Valider le formulaire
+    const form = document.getElementById('stockItemForm');
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+    
+    // Récupérer les données du formulaire
+    const itemData = {
+      ID: document.getElementById('stockItemId').value,
+      Nom: document.getElementById('stockItemName').value,
+      Catégorie: document.getElementById('stockItemCategory').value,
+      Quantité: document.getElementById('stockItemQuantity').value,
+      "Seuil alerte": document.getElementById('stockItemThreshold').value,
+      Localisation: document.getElementById('stockItemLocation').value,
+      "Référence fournisseur": document.getElementById('stockItemSupplierRef').value,
+      "Lien fournisseur": document.getElementById('stockItemSupplierLink').value
+    };
+    
+    showSpinner();
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        hideSpinner();
+        
+        // Fermer le modal
+        bootstrap.Modal.getInstance(document.getElementById('stockItemModal')).hide();
+        
+        // Recharger les données
+        loadStockData();
+      })
+      .withFailureHandler(function(error) {
+        console.error('Erreur lors de l\'enregistrement de l\'article:', error);
+        hideSpinner();
+        showErrorMessage('Erreur lors de l\'enregistrement de l\'article');
+      })
+      .saveStockItem(itemData);
+  }
+  
+  // Confirmer la suppression d'un article
+  function confirmDeleteItem(itemId) {
+    stockItemToDelete = itemId;
+    const modal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    modal.show();
+  }
+  
+  // Supprimer un article
+  function deleteStockItem(itemId) {
+    showSpinner();
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        hideSpinner();
+        
+        // Fermer le modal de confirmation
+        bootstrap.Modal.getInstance(document.getElementById('deleteConfirmModal')).hide();
+        
+        // Réinitialiser l'ID de l'article à supprimer
+        stockItemToDelete = null;
+        
+        // Recharger les données
+        loadStockData();
+      })
+      .withFailureHandler(function(error) {
+        console.error('Erreur lors de la suppression de l\'article:', error);
+        hideSpinner();
+        showErrorMessage('Erreur lors de la suppression de l\'article');
+      })
+      .deleteStockItemFromUI(itemId);
+  }
+  
+  // Exporter les données du stock au format CSV
+  function exportStockToCSV() {
+    showSpinner();
+    
+    google.script.run
+      .withSuccessHandler(function(csvContent) {
+        hideSpinner();
+        
+        // Création d'un élément <a> temporaire pour le téléchargement
+        const encodedUri = encodeURI('data:text/csv;charset=utf-8,' + csvContent);
+        const link = document.createElement('a');
+        link.setAttribute('href', encodedUri);
+        link.setAttribute('download', 'SIGMA_Stock_Export_' + new Date().toISOString().split('T')[0] + '.csv');
+        document.body.appendChild(link);
+        
+        // Cliquer automatiquement sur le lien pour démarrer le téléchargement
+        link.click();
+        
+        // Supprimer l'élément
+        document.body.removeChild(link);
+      })
+      .withFailureHandler(function(error) {
+        console.error('Erreur lors de l\'exportation des données:', error);
+        hideSpinner();
+        showErrorMessage('Erreur lors de l\'exportation des données');
+      })
+      .getStockCSVExport();
+  }
+
+  
   </script>
 </div>

@@ -2,7 +2,23 @@
   <h1 class="mb-4">
     <i class="fas fa-warehouse me-2"></i>
     État des stocks
+    <!-- Bouton d'urgence pour tester la connexion (sera visible partout) -->
+<div style="position: fixed; bottom: 10px; right: 10px; z-index: 9999;">
+  <button class="btn btn-danger" onclick="testStockConnectionEmergency()">
+    Test d'urgence
+  </button>
+</div>
   </h1>
+  
+  
+  <!-- Dans stockUI.html, remplacez le bouton par: -->
+<div class="mb-3">
+  <button type="button" id="btnTestConnection" class="btn btn-warning">
+    Test connexion
+  </button>
+</div>
+  
+  <!-- Reste du code... -->
   
   <div class="row">
     <div class="col-12 mb-4">
@@ -155,52 +171,72 @@
   </div>
 
   <script>
-    // Variables globales pour la page Stock
-    let currentPage = 1;
-    let pageSize = 10;
-    let currentFilter = 'Tous';
-    let currentSearch = '';
-    let itemToDelete = null;
     
-    // Initialisation de la page Stock
-    function initializeStockPage() {
-      console.log('Initialisation de la page Stock');
+
+  // Variables globales pour la page Stock (renommées pour éviter les conflits)
+  let stockCurrentPage = 1;
+  let stockPageSize = 10;
+  let stockCurrentFilter = 'Tous';
+  let stockCurrentSearch = '';
+  let stockItemToDelete = null;
+  
+  // Initialisation de la page Stock
+  function initializeStockPage() {
+    console.log('Initialisation de la page Stock - DÉBUT');
+    
+    try {
+      // Ajouter le gestionnaire d'événements pour le bouton de test
+      const testButton = document.getElementById('btnTestConnection');
+      if (testButton) {
+        testButton.addEventListener('click', testStockConnection);
+      }
       
       // Chargement initial des données
+      console.log('Appel de loadStockData()');
       loadStockData();
       
       // Configuration des gestionnaires d'événements
+      console.log('Appel de setupStockEventHandlers()');
       setupStockEventHandlers();
-    }
-    
-    // Chargement des données du stock
-    function loadStockData() {
-      showSpinner();
       
-      google.script.run
-        .withSuccessHandler(function(data) {
-          console.log('Données de stock reçues:', data);
-          // Remplir le tableau avec les articles
-          fillStockTable(data.stockData.items);
-          
-          // Mettre à jour la pagination
-          updatePagination(data.stockData.pagination);
-          
-          // Remplir les filtres de catégorie
-          fillCategoryFilters(data.categories);
-          
-          // Remplir la liste des localisations
-          fillLocationsList(data.locations);
-          
-          hideSpinner();
-        })
-        .withFailureHandler(function(error) {
-          console.error('Erreur lors du chargement des données de stock:', error);
-          hideSpinner();
-          showErrorMessage('Erreur lors du chargement des données de stock');
-        })
-        .getStockPageData(currentPage, pageSize, currentFilter, currentSearch);
+      console.log('Initialisation de la page Stock - FIN');
+    } catch (error) {
+      console.error('ERREUR dans initializeStockPage:', error);
+      alert('Erreur d\'initialisation: ' + error.message);
     }
+  }
+
+  // Fonction de test de connexion
+  function testStockConnection() {
+    console.log("Test de connexion...");
+    showSpinner();
+    
+    google.script.run
+      .withSuccessHandler(function(result) {
+        hideSpinner();
+        console.log("Test réussi :", result);
+        alert("Connexion OK! Nombre d'articles: " + (result ? result.length : 0));
+      })
+      .withFailureHandler(function(error) {
+        hideSpinner();
+        console.error("Test échoué :", error);
+        alert("Erreur de connexion: " + error);
+      })
+      .getAllStock();
+  }
+    // Chargement initial des données
+    console.log('Appel de loadStockData()');
+    loadStockData();
+    
+    // Configuration des autres gestionnaires d'événements
+    console.log('Appel de setupStockEventHandlers()');
+    setupStockEventHandlers();
+    
+    console.log('Initialisation de la page Stock - FIN');
+  } catch (error) {
+    console.error('ERREUR dans initializeStockPage:', error);
+  }
+}
     
     // Configuration des gestionnaires d'événements pour la page Stock
     function setupStockEventHandlers() {
@@ -536,5 +572,23 @@
         })
         .getStockCSVExport();
     }
+    // Fonction de test rapide
+function testStockConnection() {
+  console.log("Test de connexion...");
+  showSpinner();
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      hideSpinner();
+      console.log("Test réussi :", result);
+      alert("Connexion OK! Nombre d'articles: " + result.length);
+    })
+    .withFailureHandler(function(error) {
+      hideSpinner();
+      console.error("Test échoué :", error);
+      alert("Erreur de connexion: " + error);
+    })
+    .getAllStock();
+}
   </script>
 </div>

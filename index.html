@@ -131,36 +131,54 @@
     <script>
   // Variables globales
   let currentPage = 'dashboard';
-  let scriptUrl = '';
-  let userEmail = '';
+let scriptUrl = '';
+let userEmail = '';
+let currentStockPage = 1;
+let stockPageSize = 10;
+let stockFilter = 'Tous';
+let stockSearchTerm = '';
+
+// Au chargement du document
+document.addEventListener('DOMContentLoaded', function() {
+  initializeApp();
+});
+
+// Initialisation de l'application
+function initializeApp() {
+  // Obtenir l'URL de déploiement et l'email de l'utilisateur
+  google.script.run
+    .withSuccessHandler(function(url) {
+      scriptUrl = url;
+    })
+    .withFailureHandler(handleError)
+    .getScriptURL();
+    
+  google.script.run
+    .withSuccessHandler(function(email) {
+      userEmail = email;
+      document.getElementById('userEmail').textContent = email;
+    })
+    .withFailureHandler(handleError)
+    .getUserEmail();
   
-  // Au chargement du document
-  document.addEventListener('DOMContentLoaded', function() {
-    // Obtenir l'URL de déploiement et l'email de l'utilisateur
-    google.script.run
-      .withSuccessHandler(function(url) {
-        scriptUrl = url;
-      })
-      .getScriptURL();
-      
-    google.script.run
-      .withSuccessHandler(function(email) {
-        userEmail = email;
-        document.getElementById('userEmail').textContent = email;
-      })
-      .getUserEmail();
-    
-    // Initialiser la page - vérifier si un fragment d'URL existe
-    const hashPage = window.location.hash.substring(1);
-    if (hashPage) {
-      navigateTo(hashPage);
-    } else {
-      loadDashboardData(); // Charger la page d'accueil par défaut
-    }
-    
-    // Ajouter des gestionnaires d'événements pour les liens de navigation
-    setupNavigation();
-  });
+  // Initialiser la page - vérifier si un fragment d'URL existe
+  const hashPage = window.location.hash.substring(1);
+  if (hashPage) {
+    navigateTo(hashPage);
+  } else {
+    loadDashboardData(); // Charger la page d'accueil par défaut
+  }
+  
+  // Ajouter des gestionnaires d'événements pour les liens de navigation
+  setupNavigation();
+}
+
+// Gestionnaire d'erreur global
+function handleError(error) {
+  console.error('Erreur:', error);
+  hideSpinner();
+  showErrorMessage('Une erreur est survenue. Veuillez réessayer ou contacter l\'administrateur.');
+}
   
   // Fonction pour charger les données du tableau de bord
   function loadDashboardData() {
@@ -359,38 +377,39 @@
   }
   
   // Fonction pour naviguer vers une page
-  function navigateTo(page) {
-    // Mettre à jour la variable de la page courante
-    currentPage = page;
-    
-    // Mettre à jour l'URL pour permettre le retour en arrière
-    window.location.hash = page;
-    
-    // Mettre à jour la classe active dans la barre latérale
-    updateActiveNavLink(page);
-    
-    // Afficher le loader
-    showSpinner();
-    
-    // Charger le contenu de la page demandée
-    google.script.run
-      .withSuccessHandler(function(html) {
-        // Injecter le contenu HTML dans la div principale
-        document.getElementById('mainContent').innerHTML = html;
-        
-        // Initialiser la page en fonction de son type
+ // 
+function navigateTo(page) {
+  // Mettre à jour la variable de la page courante
+  currentPage = page;
+  
+  // Mettre à jour l'URL pour permettre le retour en arrière
+  window.location.hash = page;
+  
+  // Mettre à jour la classe active dans la barre latérale
+  updateActiveNavLink(page);
+  
+  // Afficher le loader
+  showSpinner();
+  
+  // Charger le contenu de la page demandée
+  google.script.run
+    .withSuccessHandler(function(html) {
+      // Injecter le contenu HTML dans la div principale
+      document.getElementById('mainContent').innerHTML = html;
+      
+      // Initialiser la page en fonction de son type
+      setTimeout(() => {
         initializePage(page);
-        
-        // Masquer le loader une fois le chargement terminé
         hideSpinner();
-      })
-      .withFailureHandler(function(error) {
-        console.error('Erreur lors du chargement de la page:', error);
-        hideSpinner();
-        showErrorMessage('Erreur lors du chargement de la page');
-      })
-      .getPageContent(page);
-  }
+      }, 100);
+    })
+    .withFailureHandler(function(error) {
+      console.error('Erreur lors du chargement de la page:', error);
+      hideSpinner();
+      showErrorMessage('Erreur lors du chargement de la page: ' + error);
+    })
+    .getPageContent(page);
+}
   
   // Mettre à jour le lien actif dans la navigation
   function updateActiveNavLink(page) {
@@ -464,6 +483,22 @@
   function showErrorMessage(message) {
     alert(message);
   }
+  // Fonction d'urgence pour tester la connexion à la base de données
+function testStockConnectionEmergency() {
+  console.log("Test d'urgence de connexion...");
+  alert("Test d'urgence en cours...");
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      console.log("Test d'urgence réussi :", result);
+      alert("Connexion OK! Nombre d'articles: " + (result ? result.length : 0));
+    })
+    .withFailureHandler(function(error) {
+      console.error("Test d'urgence échoué :", error);
+      alert("Erreur de connexion: " + error);
+    })
+    .getAllStock();
+}
 </script>
   </body>
 </html>

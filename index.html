@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -382,25 +383,37 @@ function handleError(error) {
   // Fonction pour naviguer vers une page
  // 
 function navigateTo(page) {
-  // Mettre à jour la variable de la page courante
   currentPage = page;
-  
-  // Mettre à jour l'URL pour permettre le retour en arrière
   window.location.hash = page;
-  
-  // Mettre à jour la classe active dans la barre latérale
   updateActiveNavLink(page);
-  
-  // Afficher le loader
   showSpinner();
-  
-  // Charger le contenu de la page demandée
+
   google.script.run
     .withSuccessHandler(function(html) {
-      // Injecter le contenu HTML dans la div principale
-      document.getElementById('mainContent').innerHTML = html;
-      
-      // Initialiser la page en fonction de son type
+      const mainContent = document.getElementById('mainContent');
+      mainContent.innerHTML = html;
+
+      // Initialiser notre objet global pour mémoriser les pages déjà chargées
+      window.loadedPages = window.loadedPages || {};
+
+      // Si la page n'a pas encore été chargée (scripts non injectés), injecter les scripts
+      if (!window.loadedPages[page]) {
+        const dynamicScripts = mainContent.querySelectorAll('script');
+        dynamicScripts.forEach(oldScript => {
+          const newScript = document.createElement('script');
+          newScript.setAttribute('data-dynamic', 'true');
+          if (oldScript.src) {
+            newScript.src = oldScript.src;
+          } else {
+            newScript.textContent = oldScript.textContent;
+          }
+          document.body.appendChild(newScript);
+        });
+        // Marquer cette page comme chargée
+        window.loadedPages[page] = true;
+      }
+
+      // Après un court délai pour s'assurer que les scripts ont été exécutés
       setTimeout(() => {
         initializePage(page);
         hideSpinner();
@@ -413,7 +426,9 @@ function navigateTo(page) {
     })
     .getPageContent(page);
 }
-  
+
+
+
   // Mettre à jour le lien actif dans la navigation
   function updateActiveNavLink(page) {
     // Supprimer la classe active de tous les liens
@@ -550,5 +565,7 @@ function testStockConnectionEmergency() {
     .testGetAllStock(); // Utiliser la fonction de test dédiée
 }
 </script>
+<!-- Après les autres scripts, avant la fermeture de </body> -->
+<?!= include('stockUIFunctions'); ?>
   </body>
 </html>

@@ -94,7 +94,6 @@ function getEmpruntsEnAttente() {
 }
 
 // Fonction pour récupérer le contenu HTML d'une page spécifique
-// Cette fonction doit être au niveau racine, pas à l'intérieur d'une autre fonction!
 function getPageContent(pageName) {
   switch(pageName) {
     case 'dashboard':
@@ -113,7 +112,9 @@ function getPageContent(pageName) {
       // Par défaut, retourner la page dashboard
       return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
   }
-  // Obtenir les données pour la page Stock
+}
+
+// Obtenir les données pour la page Stock
 function getStockPageData(page, pageSize, filterType, searchTerm) {
   // Récupérer les articles paginés
   const stockData = getStockPaginated(page || 1, pageSize || 10, filterType, searchTerm);
@@ -155,5 +156,4 @@ function deleteStockItemFromUI(id) {
 // Obtenir le fichier CSV du stock pour export
 function getStockCSVExport() {
   return exportStockToCSV();
-}
 }

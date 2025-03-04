@@ -115,21 +115,31 @@ function getPageContent(pageName) {
 }
 
 // Obtenir les données pour la page Stock
+// Obtenir les données pour la page Stock
 function getStockPageData(page, pageSize, filterType, searchTerm) {
-  // Récupérer les articles paginés
-  const stockData = getStockPaginated(page || 1, pageSize || 10, filterType, searchTerm);
-  
-  // Récupérer les catégories uniques pour le filtre
-  const categories = getUniqueStockCategories();
-  
-  // Récupérer les localisations uniques pour l'auto-complétion
-  const locations = getUniqueStockLocations();
-  
-  return {
-    stockData: stockData,
-    categories: categories,
-    locations: locations
-  };
+  try {
+    // Récupérer les articles paginés
+    const stockData = getStockPaginated(page || 1, pageSize || 10, filterType, searchTerm);
+    
+    // Récupérer les catégories uniques pour le filtre
+    const categories = getUniqueStockCategories();
+    
+    // Récupérer les localisations uniques pour l'auto-complétion
+    const locations = getUniqueStockLocations();
+    
+    return {
+      stockData: stockData,
+      categories: categories,
+      locations: locations
+    };
+  } catch (error) {
+    console.error("Erreur dans getStockPageData:", error);
+    return {
+      stockData: { items: [], pagination: { currentPage: 1, pageSize: 10, totalItems: 0, totalPages: 1 } },
+      categories: [],
+      locations: []
+    };
+  }
 }
 
 // Obtenir un article spécifique pour l'édition

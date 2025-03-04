@@ -91,7 +91,10 @@ function getEmpruntsEnAttente() {
       statut: "Non inventorié, Non facturé"
     }
   ];
-  // Fonction pour récupérer le contenu HTML d'une page spécifique
+}
+
+// Fonction pour récupérer le contenu HTML d'une page spécifique
+// Cette fonction doit être au niveau racine, pas à l'intérieur d'une autre fonction!
 function getPageContent(pageName) {
   switch(pageName) {
     case 'dashboard':
@@ -110,5 +113,4 @@ function getPageContent(pageName) {
       // Par défaut, retourner la page dashboard
       return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
   }
-}
 }

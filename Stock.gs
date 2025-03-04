@@ -5,7 +5,12 @@
 
 // Obtenir tous les articles du stock
 function getAllStock() {
-  return getAllData(CONFIG.SHEETS.STOCK);
+  try {
+    return getAllData(CONFIG.SHEETS.STOCK);
+  } catch (error) {
+    console.error("Erreur dans getAllStock:", error);
+    return [];
+  }
 }
 
 // Obtenir les articles du stock avec pagination
@@ -60,8 +65,8 @@ function getStockPaginated(page, pageSize, filterType, searchTerm) {
         totalPages: totalPages
       }
     };
-  } catch (e) {
-    console.error(`Erreur lors de la pagination du stock: ${e.message}`);
+  } catch (error) {
+    console.error("Erreur dans getStockPaginated:", error);
     return {
       items: [],
       pagination: {
@@ -74,4 +79,125 @@ function getStockPaginated(page, pageSize, filterType, searchTerm) {
   }
 }
 
-// Reste du fichier inchangé...
+// Créer un nouvel article
+function createStockItem(itemData) {
+  try {
+    // Ajouter un ID unique
+    itemData.ID = Utilities.getUuid();
+    
+    // Convertir les champs numériques
+    if (itemData.Quantité) itemData.Quantité = Number(itemData.Quantité);
+    if (itemData["Seuil alerte"]) itemData["Seuil alerte"] = Number(itemData["Seuil alerte"]);
+    
+    // Ajouter l'article à la feuille
+    return addRow(CONFIG.SHEETS.STOCK, itemData);
+  } catch (error) {
+    console.error("Erreur dans createStockItem:", error);
+    return null;
+  }
+}
+
+// Obtenir un article par son ID
+function getStockItemById(id) {
+  try {
+    const items = getAllStock();
+    return items.find(item => item.ID === id);
+  } catch (error) {
+    console.error("Erreur dans getStockItemById:", error);
+    return null;
+  }
+}
+
+// Mettre à jour un article
+function updateStockItem(id, itemData) {
+  try {
+    // Convertir les champs numériques
+    if (itemData.Quantité) itemData.Quantité = Number(itemData.Quantité);
+    if (itemData["Seuil alerte"]) itemData["Seuil alerte"] = Number(itemData["Seuil alerte"]);
+    
+    return updateRow(CONFIG.SHEETS.STOCK, "ID", id, itemData);
+  } catch (error) {
+    console.error("Erreur dans updateStockItem:", error);
+    return false;
+  }
+}
+
+// Supprimer un article
+function deleteStockItem(id) {
+  try {
+    return deleteRow(CONFIG.SHEETS.STOCK, "ID", id);
+  } catch (error) {
+    console.error("Erreur dans deleteStockItem:", error);
+    return false;
+  }
+}
+
+// Exporter les données du stock au format CSV
+function exportStockToCSV() {
+  try {
+    const items = getAllStock();
+    
+    // Définir les en-têtes
+    const headers = ["ID", "Nom", "Catégorie", "Quantité", "Seuil alerte", "Localisation", "Référence fournisseur"];
+    
+    // Créer les lignes CSV
+    let csvContent = headers.join(",") + "\n";
+    
+    items.forEach(item => {
+      const row = [
+        item.ID || "",
+        item.Nom || "",
+        item.Catégorie || "",
+        item.Quantité || "",
+        item["Seuil alerte"] || "",
+        item.Localisation || "",
+        item["Référence fournisseur"] || ""
+      ].map(cell => `"${cell}"`).join(",");
+      
+      csvContent += row + "\n";
+    });
+    
+    return csvContent;
+  } catch (error) {
+    console.error("Erreur dans exportStockToCSV:", error);
+    return "";
+  }
+}
+
+// Obtenir les catégories uniques d'articles
+function getUniqueStockCategories() {
+  try {
+    const items = getAllStock();
+    const categories = new Set();
+    
+    items.forEach(item => {
+      if (item.Catégorie) {
+        categories.add(item.Catégorie);
+      }
+    });
+    
+    return Array.from(categories);
+  } catch (error) {
+    console.error("Erreur dans getUniqueStockCategories:", error);
+    return [];
+  }
+}
+
+// Obtenir les localisations uniques des articles
+function getUniqueStockLocations() {
+  try {
+    const items = getAllStock();
+    const locations = new Set();
+    
+    items.forEach(item => {
+      if (item.Localisation) {
+        locations.add(item.Localisation);
+      }
+    });
+    
+    return Array.from(locations);
+  } catch (error) {
+    console.error("Erreur dans getUniqueStockLocations:", error);
+    return [];
+  }
+}

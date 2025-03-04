@@ -130,13 +130,16 @@
     
     <script>
   // Variables globales
-  let currentPage = 'dashboard';
+  // Variables globales
+let currentPage = 'dashboard';
 let scriptUrl = '';
 let userEmail = '';
-let currentStockPage = 1;
+
+// Variables pour la page Stock (doivent correspondre aux noms dans stockUI.html)
+let stockCurrentPage = 1;
 let stockPageSize = 10;
-let stockFilter = 'Tous';
-let stockSearchTerm = '';
+let stockCurrentFilter = 'Tous';
+let stockCurrentSearch = '';
 
 // Au chargement du document
 document.addEventListener('DOMContentLoaded', function() {
@@ -456,10 +459,41 @@ function navigateTo(page) {
     // Cette fonction sera développée ultérieurement
   }
   
-  function initializeStockPage() {
-    console.log('Initialisation de la page Stock');
-    // Cette fonction sera développée ultérieurement
+  // Initialisation de la page Stock
+function initializeStockPage() {
+  console.log('Initialisation de la page Stock');
+  
+  try {
+    // Vérifier si la page est correctement chargée
+    if (!document.getElementById('stockPage')) {
+      console.error('La page Stock n\'est pas encore chargée correctement');
+      setTimeout(initializeStockPage, 100); // Réessayer après un court délai
+      return;
+    }
+    
+    // Ajouter le gestionnaire d'événements pour le bouton de test
+    const testButton = document.getElementById('btnTestConnection');
+    if (testButton) {
+      testButton.addEventListener('click', testStockConnection);
+    }
+    
+    // Cette fonction doit être définie dans stockUI.html
+    if (typeof loadStockData === 'function') {
+      loadStockData();
+    } else {
+      console.error('La fonction loadStockData n\'est pas définie');
+    }
+    
+    // Cette fonction doit être définie dans stockUI.html
+    if (typeof setupStockEventHandlers === 'function') {
+      setupStockEventHandlers();
+    } else {
+      console.error('La fonction setupStockEventHandlers n\'est pas définie');
+    }
+  } catch (error) {
+    console.error('ERREUR dans initializeStockPage:', error);
   }
+}
   
   function initializeModulesPage() {
     console.log('Initialisation de la page Modules');
@@ -484,20 +518,36 @@ function navigateTo(page) {
     alert(message);
   }
   // Fonction d'urgence pour tester la connexion à la base de données
+// Fonction d'urgence pour tester la connexion à la base de données
 function testStockConnectionEmergency() {
   console.log("Test d'urgence de connexion...");
-  alert("Test d'urgence en cours...");
+  
+  // Afficher un message pendant le test
+  const tempAlert = document.createElement('div');
+  tempAlert.style.position = 'fixed';
+  tempAlert.style.top = '50%';
+  tempAlert.style.left = '50%';
+  tempAlert.style.transform = 'translate(-50%, -50%)';
+  tempAlert.style.backgroundColor = 'rgba(0,0,0,0.8)';
+  tempAlert.style.color = 'white';
+  tempAlert.style.padding = '20px';
+  tempAlert.style.borderRadius = '5px';
+  tempAlert.style.zIndex = '9999';
+  tempAlert.textContent = "Test d'urgence en cours...";
+  document.body.appendChild(tempAlert);
   
   google.script.run
     .withSuccessHandler(function(result) {
+      document.body.removeChild(tempAlert);
       console.log("Test d'urgence réussi :", result);
       alert("Connexion OK! Nombre d'articles: " + (result ? result.length : 0));
     })
     .withFailureHandler(function(error) {
+      document.body.removeChild(tempAlert);
       console.error("Test d'urgence échoué :", error);
       alert("Erreur de connexion: " + error);
     })
-    .getAllStock();
+    .testGetAllStock(); // Utiliser la fonction de test dédiée
 }
 </script>
   </body>

@@ -65,8 +65,74 @@
     </div>
   </div>
   
-  <!-- Inclure le formulaire d'ajout/modification -->
-  <?!= include('stockItemForm'); ?>
+  <!-- Formulaire d'ajout/modification d'article (intégré directement) -->
+  <div class="modal fade" id="stockItemModal" tabindex="-1" aria-labelledby="stockItemModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="stockItemModalLabel">Nouvel article</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+        </div>
+        <div class="modal-body">
+          <form id="stockItemForm">
+            <input type="hidden" id="stockItemId" value="">
+            
+            <div class="mb-3">
+              <label for="stockItemName" class="form-label">Nom de l'article *</label>
+              <input type="text" class="form-control" id="stockItemName" required>
+            </div>
+            
+            <div class="mb-3">
+              <label for="stockItemCategory" class="form-label">Catégorie *</label>
+              <select class="form-select" id="stockItemCategory" required>
+                <option value="">Sélectionner...</option>
+                <option value="Consommable">Consommable</option>
+                <option value="Non consommable">Non consommable</option>
+                <!-- Les autres catégories seront chargées dynamiquement -->
+              </select>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="stockItemQuantity" class="form-label">Quantité *</label>
+                <input type="number" class="form-control" id="stockItemQuantity" min="0" required>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="stockItemThreshold" class="form-label">Seuil d'alerte *</label>
+                <input type="number" class="form-control" id="stockItemThreshold" min="0" required>
+              </div>
+            </div>
+            
+            <div class="mb-3">
+              <label for="stockItemLocation" class="form-label">Localisation</label>
+              <input type="text" class="form-control" id="stockItemLocation" list="locationsList">
+              <datalist id="locationsList">
+                <!-- Les localisations seront chargées dynamiquement -->
+              </datalist>
+            </div>
+            
+            <div class="mb-3">
+              <label for="stockItemSupplierRef" class="form-label">Référence fournisseur</label>
+              <input type="text" class="form-control" id="stockItemSupplierRef">
+            </div>
+            
+            <div class="mb-3">
+              <label for="stockItemSupplierLink" class="form-label">Lien fournisseur</label>
+              <input type="url" class="form-control" id="stockItemSupplierLink" placeholder="https://">
+            </div>
+            
+            <div class="text-end">
+              <small class="text-muted">* Champs obligatoires</small>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" class="btn btn-primary" id="saveStockItem">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal de confirmation de suppression -->
   <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true">
@@ -113,6 +179,7 @@
       
       google.script.run
         .withSuccessHandler(function(data) {
+          console.log('Données de stock reçues:', data);
           // Remplir le tableau avec les articles
           fillStockTable(data.stockData.items);
           
@@ -190,7 +257,7 @@
       const tbody = document.querySelector('#stockTable tbody');
       tbody.innerHTML = '';
       
-      if (items.length === 0) {
+      if (!items || items.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `<td colspan="6" class="text-center">Aucun article trouvé</td>`;
         tbody.appendChild(row);
@@ -244,6 +311,8 @@
       const paginationEl = document.getElementById('stockPagination');
       paginationEl.innerHTML = '';
       
+      if (!pagination) return;
+      
       // Bouton Précédent
       const prevItem = document.createElement('li');
       prevItem.className = `page-item ${pagination.currentPage === 1 ? 'disabled' : ''}`;
@@ -293,13 +362,15 @@
       });
       
       // Ajouter les catégories personnalisées
-      categories.forEach(category => {
-        if (category !== 'Consommable' && category !== 'Non consommable') {
-          const item = document.createElement('li');
-          item.innerHTML = `<a class="dropdown-item" href="#" data-filter="${category}">${category}</a>`;
-          dropdown.appendChild(item);
-        }
-      });
+      if (categories && categories.length > 0) {
+        categories.forEach(category => {
+          if (category !== 'Consommable' && category !== 'Non consommable') {
+            const item = document.createElement('li');
+            item.innerHTML = `<a class="dropdown-item" href="#" data-filter="${category}">${category}</a>`;
+            dropdown.appendChild(item);
+          }
+        });
+      }
     }
     
     // Remplir la liste des localisations pour l'autocomplétion
@@ -307,11 +378,13 @@
       const datalist = document.getElementById('locationsList');
       datalist.innerHTML = '';
       
-      locations.forEach(location => {
-        const option = document.createElement('option');
-        option.value = location;
-        datalist.appendChild(option);
-      });
+      if (locations && locations.length > 0) {
+        locations.forEach(location => {
+          const option = document.createElement('option');
+          option.value = location;
+          datalist.appendChild(option);
+        });
+      }
     }
     
     // Ouvrir le formulaire d'article (pour création ou édition)

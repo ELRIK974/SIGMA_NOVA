@@ -93,28 +93,39 @@ function getEmpruntsEnAttente() {
   ];
 }
 
+
 // Fonction pour récupérer le contenu HTML d'une page spécifique
 function getPageContent(pageName) {
+  let content = '';
+  
   switch(pageName) {
     case 'dashboard':
-      return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
+      content = HtmlService.createTemplateFromFile('dashboardUI').evaluate().getContent();
+      break;
     case 'emprunts':
-      return HtmlService.createHtmlOutputFromFile('empruntsUI').getContent();
+      // Corriger le nom du fichier pour qu'il corresponde au fichier réel
+      content = HtmlService.createTemplateFromFile('empruntsUI').evaluate().getContent();
+      break;
     case 'stock':
-      return HtmlService.createHtmlOutputFromFile('stockUI').getContent();
+      content = HtmlService.createTemplateFromFile('stockUI').evaluate().getContent();
+      break;
     case 'modules':
-      return HtmlService.createHtmlOutputFromFile('modulesUI').getContent();
+      content = HtmlService.createTemplateFromFile('modulesUI').evaluate().getContent();
+      break;
     case 'livraisons':
-      return HtmlService.createHtmlOutputFromFile('livraisonsUI').getContent();
+      content = HtmlService.createTemplateFromFile('livraisonsUI').evaluate().getContent();
+      break;
     case 'options':
-      return HtmlService.createHtmlOutputFromFile('optionsUI').getContent();
+      content = HtmlService.createTemplateFromFile('optionsUI').evaluate().getContent();
+      break;
     default:
       // Par défaut, retourner la page dashboard
-      return HtmlService.createHtmlOutputFromFile('dashboardUI').getContent();
+      content = HtmlService.createTemplateFromFile('dashboardUI').evaluate().getContent();
   }
+  
+  return content;
 }
 
-// Obtenir les données pour la page Stock
 // Obtenir les données pour la page Stock
 function getStockPageData(page, pageSize, filterType, searchTerm) {
   try {
@@ -218,5 +229,31 @@ function getEmpruntsPageData(page, pageSize, filterStatus, searchTerm) {
         totalPages: 1
       }
     };
+  }
+}
+/// Sauvegarder un emprunt (nouveau ou existant)
+function saveEmpruntFromUI(empruntData) {
+  try {
+    // Formater les dates si elles sont au format YYYY-MM-DD (format HTML input date)
+    if (empruntData["Date départ"] && empruntData["Date départ"].includes('-')) {
+      const parts = empruntData["Date départ"].split('-');
+      empruntData["Date départ"] = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    
+    if (empruntData["Date retour"] && empruntData["Date retour"].includes('-')) {
+      const parts = empruntData["Date retour"].split('-');
+      empruntData["Date retour"] = `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    
+    if (empruntData.ID) {
+      // Mise à jour d'un emprunt existant
+      return updateEmprunt(empruntData.ID, empruntData);
+    } else {
+      // Création d'un nouvel emprunt
+      return createEmprunt(empruntData);
+    }
+  } catch (error) {
+    console.error("Erreur dans saveEmpruntFromUI:", error);
+    return null;
   }
 }

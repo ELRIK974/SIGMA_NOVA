@@ -167,3 +167,56 @@ function deleteStockItemFromUI(id) {
 function getStockCSVExport() {
   return exportStockToCSV();
 }
+
+// Obtenir les données pour la page Emprunts avec pagination
+function getEmpruntsPageData(page, pageSize, filterStatus, searchTerm) {
+  try {
+    // Récupérer tous les emprunts
+    const emprunts = getAllEmprunts();
+    let filteredEmprunts = emprunts;
+    
+    // Appliquer le filtre par statut si spécifié
+    if (filterStatus && filterStatus !== 'Tous') {
+      filteredEmprunts = filteredEmprunts.filter(emp => emp.Statut === filterStatus);
+    }
+    
+    // Appliquer le filtre de recherche si spécifié
+    if (searchTerm && searchTerm.trim() !== '') {
+      const term = searchTerm.toLowerCase().trim();
+      filteredEmprunts = filteredEmprunts.filter(emp => 
+        (emp["Nom Manipulation"] && emp["Nom Manipulation"].toLowerCase().includes(term)) || 
+        (emp.Emprunteur && emp.Emprunteur.toLowerCase().includes(term))
+      );
+    }
+    
+    // Calculer le nombre total de pages
+    const totalItems = filteredEmprunts.length;
+    const totalPages = Math.ceil(totalItems / pageSize) || 1; // Au moins 1 page même si vide
+    
+    // Extraction pour la pagination
+    const startIndex = (page - 1) * pageSize;
+    const paginatedItems = filteredEmprunts.slice(startIndex, startIndex + pageSize);
+    
+    // Retourner les données et les informations de pagination
+    return {
+      emprunts: paginatedItems,
+      pagination: {
+        currentPage: page,
+        pageSize: pageSize,
+        totalItems: totalItems,
+        totalPages: totalPages
+      }
+    };
+  } catch (error) {
+    console.error("Erreur dans getEmpruntsPageData:", error);
+    return {
+      emprunts: [],
+      pagination: {
+        currentPage: 1,
+        pageSize: pageSize || 10,
+        totalItems: 0,
+        totalPages: 1
+      }
+    };
+  }
+}

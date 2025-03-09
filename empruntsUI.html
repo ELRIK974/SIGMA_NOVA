@@ -3,6 +3,28 @@
     <i class="fas fa-exchange-alt me-2"></i>
     Gestion des emprunts
   </h1>
+       <!-- Barre de recherche et filtre -->
+<div class="row mb-3">
+  <div class="col-md-4">
+    <input type="text" class="form-control" id="empruntSearch" placeholder="Recherche..." oninput="loadEmpruntsData()">
+  </div>
+  <div class="col-md-4">
+    <select class="form-select" id="empruntFilterStatus" onchange="loadEmpruntsData()">
+      <option value="Tous">Tous</option>
+      <option value="Pas prêt">Pas prêt</option>
+      <option value="Prêt">Prêt</option>
+      <option value="Parti">Parti</option>
+      <option value="Revenu">Revenu</option>
+      <option value="Inventorié">Inventorié</option>
+    </select>
+  </div>
+</div>
+<!-- Zone de pagination -->
+<div id="empruntsPagination" class="d-flex justify-content-between align-items-center mt-3">
+  <button class="btn btn-secondary" onclick="changeEmpruntsPage(-1)">Précédent</button>
+  <span id="paginationInfo"></span>
+  <button class="btn btn-secondary" onclick="changeEmpruntsPage(1)">Suivant</button>
+</div>
   
   <div class="row">
     <div class="col-12 mb-4">
@@ -34,8 +56,11 @@
               </tbody>
             </table>
           </div>
+     
+
+
           
-          <div class="alert alert-info mt-3">
+        <div class="alert alert-info mt-3">
             <i class="fas fa-info-circle me-2"></i>
             Vous pouvez maintenant ajouter un nouvel emprunt en cliquant sur le bouton "Nouvel emprunt".
           </div>
@@ -259,4 +284,95 @@
     // Ajouter la ligne au début du tableau
     tbody.insertBefore(row, tbody.firstChild);
   }
+  // Variable globale pour garder la page courante
+let currentEmpruntsPage = 1;
+
+// Fonction pour charger les emprunts réels avec filtre, recherche et pagination
+function loadEmpruntsData(page = 1) {
+  const pageSize = 10; // Vous pouvez aussi récupérer cette valeur depuis CONFIG
+  const filterStatus = document.getElementById('empruntFilterStatus').value;
+  const searchTerm = document.getElementById('empruntSearch').value;
+  
+  google.script.run
+    .withSuccessHandler(function(response) {
+      const tbody = document.querySelector('#empruntsTable tbody');
+      tbody.innerHTML = ''; // Réinitialiser le tableau
+      
+      // Si aucun emprunt n'est trouvé
+      if(response.emprunts.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td colspan="6" class="text-center">Aucun emprunt trouvé</td>`;
+        tbody.appendChild(row);
+      } else {
+        response.emprunts.forEach(emprunt => {
+          const row = document.createElement('tr');
+          // Ajout d'une classe en fonction du statut
+          if(emprunt.Statut === "Pas prêt") {
+            row.classList.add('table-warning');
+          } else if(emprunt.Statut === "Parti") {
+            row.classList.add('table-info');
+          }
+          row.innerHTML = `
+            <td>${emprunt.ID}</td>
+            <td>${emprunt["Nom Manipulation"]}</td>
+            <td>${emprunt["Date départ"]} - ${emprunt["Date retour"]}</td>
+            <td><span class="badge ${getBadgeClass(emprunt.Statut)}">${emprunt.Statut}</span></td>
+            <td>${emprunt.Emprunteur}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary me-1">
+                <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-edit"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+      // Mettre à jour la zone de pagination
+      updateEmpruntsPagination(response.pagination);
+    })
+    .withFailureHandler(function(error) {
+      console.error('Erreur lors du chargement des emprunts:', error);
+      alert("Erreur lors du chargement des emprunts");
+    })
+    .getEmpruntsPageData(page, pageSize, filterStatus, searchTerm);
+}
+
+// Fonction pour mettre à jour l'affichage de la pagination
+function updateEmpruntsPagination(pagination) {
+  currentEmpruntsPage = pagination.currentPage;
+  const paginationInfo = document.getElementById('paginationInfo');
+  paginationInfo.textContent = `Page ${pagination.currentPage} sur ${pagination.totalPages}`;
+  
+  // Vous pouvez activer/désactiver les boutons "Précédent" et "Suivant" en fonction de la page actuelle
+  document.querySelector('#empruntsPagination button:first-child').disabled = (pagination.currentPage <= 1);
+  document.querySelector('#empruntsPagination button:last-child').disabled = (pagination.currentPage >= pagination.totalPages);
+}
+
+// Fonction pour changer de page
+function changeEmpruntsPage(delta) {
+  const newPage = currentEmpruntsPage + delta;
+  loadEmpruntsData(newPage);
+}
+
+// Exemple de fonction existante pour obtenir la classe CSS selon le statut
+function getBadgeClass(status) {
+  switch(status) {
+    case "Pas prêt": return "bg-warning text-dark";
+    case "Prêt": return "bg-success";
+    case "Parti": return "bg-primary";
+    case "Revenu": return "bg-info text-dark";
+    case "Inventorié": return "bg-secondary";
+    default: return "bg-secondary";
+  }
+}
+
+// Au chargement de la page, remplacer l'appel aux données fictives par le chargement réel
+document.addEventListener('DOMContentLoaded', function() {
+  // Par exemple, initialisez la page d'emprunts avec des données réelles
+  loadEmpruntsData();
+});
+
 </script>

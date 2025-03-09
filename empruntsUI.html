@@ -371,8 +371,35 @@ function getBadgeClass(status) {
 
 // Au chargement de la page, remplacer l'appel aux données fictives par le chargement réel
 document.addEventListener('DOMContentLoaded', function() {
-  // Par exemple, initialisez la page d'emprunts avec des données réelles
-  loadEmpruntsData();
+  loadRealEmpruntsData();
 });
 
+function loadRealEmpruntsData() {
+  google.script.run.withSuccessHandler(fillEmpruntsTable).getEmpruntsPageData(1, 10, 'Tous', '');
+}
+
+function fillRealEmpruntsTable(result) {
+  const tbody = document.querySelector('#empruntsTable tbody');
+  tbody.innerHTML = '';
+
+  if (!result.emprunts.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center">Aucun emprunt trouvé</td></tr>`;
+    return;
+  }
+
+  result.emprunts.forEach(emprunt => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td>${emprunt.ID}</td>
+      <td>${emprunt["Nom Manipulation"]}</td>
+      <td>${emprunt["Date départ"]} - ${emprunt["Date retour"]}</td>
+      <td>${emprunt.Statut}</td>
+      <td>${emprunt.Emprunteur}</td>
+      <td>
+        <button onclick="editEmprunt('${emprunt.ID}')">Éditer</button>
+      </td>
+    `;
+    document.querySelector('#empruntsTable tbody').appendChild(row);
+  });
+}
 </script>
